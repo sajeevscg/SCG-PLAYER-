@@ -1,0 +1,42 @@
+name: Unzip and Build APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract ZIP file
+        run: |
+          unzip -q SCGPlayer.zip -d extracted_project
+          # Moves files up one level if the ZIP contained a single root folder
+          shopt -s dotglob
+          if [ $(ls -1 extracted_project | wc -l) -eq 1 ] && [ -d extracted_project/* ]; then
+            mv extracted_project/*/* .
+          else
+            mv extracted_project/* .
+          fi
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build Debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-apk
+          path: app/build/outputs/apk/debug/*.apk
